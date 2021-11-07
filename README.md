@@ -4,10 +4,10 @@ Parth Ray
 Gaurav Joshi
 
 To Compile:
-    make dpp
+    make allocator
 
 To Run:
-    ./dpp [number of phils]
+    ./allocator [size]
 
 What we each did:
 Parth Ray: Did whole thing together

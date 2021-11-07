@@ -1,12 +1,12 @@
 CC=gcc
-CFLAGS=-pthread -Wall
+CFLAGS=-Wall
 
 clean:
 	rm -rf *.o
-	rm -rf dpp
+	rm -rf allocator
 
-dpp: dpp.o
-	$(CC) $(CFLAGS) -o dpp dpp.o
+allocator: allocator.o
+	$(CC) $(CFLAGS) -o allocator allocator.o
 
-dpp.o: dpp.c
-	$(CC) $(CFLAGS) -c dpp.c
+allocator.o: allocator.c
+	$(CC) $(CFLAGS) -c allocator.c
