@@ -62,7 +62,7 @@ void first_fit(char* process, unsigned int size){
         temp = temp->next;
     }
     if (temp == NULL){
-        fprintf(stderr, "rq: No space.\n");
+        fprintf(stderr, "rq: No space in Memory. Try compacting.\n");
         return;
     }
 }
@@ -95,7 +95,7 @@ void best_fit(char* process, unsigned int size){
         temp = temp->next;
     }
     if (bestHole == NULL){
-        fprintf(stderr, "rq: No space.\n");
+        fprintf(stderr, "rq: No space in Memory. Try compacting.\n");
         return;
     }
     newBlock = (Block *)malloc(sizeof(Block));
@@ -142,7 +142,7 @@ void worst_fit(char* process, unsigned int size){
         temp = temp->next;
     }
     if (worstHole == NULL){
-        fprintf(stderr, "rq: No space.\n");
+        fprintf(stderr, "rq: No space in Memory. Try compacting.\n");
         return;
     }
     newBlock = (Block *)malloc(sizeof(Block));
@@ -248,37 +248,39 @@ void c(){
     compact->process = FREE;
     compact->start = 0;
     compact->size = 0;
-    compact->next = 0;
+    compact->next = NULL;
     Block *prev = NULL;
     Block *temp = memory;
-    Block *next_block = NULL;
-    int cur_start = 0;
+    Block *lastBlock = NULL;
+
     while(temp != NULL){
         if(strcmp(temp->process, FREE) == 0){
+            /* free and add to compact */
             compact->size += temp->size;
-            next_block = temp->next;
-            free(temp);
-            if(prev != NULL){
-                prev->next = next_block;
-            }
-            else{
-                memory = next_block;
-            }
-            temp = next_block;
+            prev = temp;
+            temp = temp->next;
+            free(prev);
         }
         else{
-            temp->start = cur_start;
-            cur_start += temp->size + 1;
+            /* a process block */
+            /* link to last process block */
+            if (lastBlock != NULL){
+                lastBlock->next = temp;
+                temp->start = lastBlock->start + lastBlock->size;
+            }
+            else{
+                /* no process block in the front */
+                temp->start = 0;
+                memory = temp;
+            }
+            lastBlock = temp;
+            temp = temp->next;
         }
-
     }
-    if(prev == NULL){
-        memory = compact;
-        compact->start = cur_start;
-        return;
-    }
-    prev->next = compact;
-    compact->start = cur_start;
+    /* put compact block at the end */
+    lastBlock->next = compact;
+    compact->start = lastBlock->start + lastBlock->size;
+    return;
 }
 
 void stat(){
