@@ -134,10 +134,6 @@ void worst_fit(char* process, unsigned int size){
                 }
             }
         }
-        else if (strcmp(temp->process, FREE) == 0 && temp->size == size){
-            temp->process = strdup(process);
-            return;
-        }
         prev = temp;
         temp = temp->next;
     }
@@ -194,6 +190,8 @@ void rq(char *input){
 
 void rl(char *input){
     char *token;
+    unsigned int size;
+    char *proc_name;
     int i = 0;
     char *args[MAX_LINE/2 + 1];
     Block* temp = memory;
@@ -227,7 +225,11 @@ void rl(char *input){
                 //combine next free
                 freeHead->size += temp->next->size;
                 freeHead->next = temp->next->next;
+                proc_name = freeHead->next->process;
+                size = freeHead->next->size;
                 free(temp->next);
+                freeHead->next->process = proc_name;
+                freeHead->next->size = size;
             }
             if (!temp_is_head){
                 free(temp);
