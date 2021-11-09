@@ -200,24 +200,41 @@ void rl(char *input){
 }
 
 void c(){
-    /*
-    Block* temp = memory;
-    Block* prev = NULL;
-    Block* compact = (Block *)malloc(sizeof(Block));
+    Block *compact = (Block *)malloc(sizeof(Block));
     compact->process = FREE;
     compact->start = 0;
     compact->size = 0;
-    compact->next = NULL;
-
-    while (temp != NULL){
-        if (strcmp(temp->process, FREE) == 0){
+    compact->next = 0;
+    Block *prev = NULL;
+    Block *temp = memory;
+    Block *next_block = NULL;
+    int cur_start = 0;
+    while(temp != NULL){
+        if(strcmp(temp->process, FREE) == 0){
             compact->size += temp->size;
-            if (temp->next != NULL){
-
+            next_block = temp->next;
+            free(temp);
+            if(prev != NULL){
+                prev->next = next_block;
             }
+            else{
+                memory = next_block;
+            }
+            temp = next_block;
         }
+        else{
+            temp->start = cur_start;
+            cur_start += temp->size + 1;
+        }
+
     }
-    */
+    if(prev == NULL){
+        memory = compact;
+        compact->start = cur_start;
+        return;
+    }
+    prev->next = compact;
+    compact->start = cur_start;
 }
 
 void stat(){
