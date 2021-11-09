@@ -277,6 +277,16 @@ void c(){
             temp = temp->next;
         }
     }
+    if (compact->size == 0){
+        /* no free blocks to compact */
+        lastBlock->next = NULL;
+        return;
+    }
+    if (lastBlock == NULL){
+        /* all free blocks */
+        memory = compact;
+        return;
+    }
     /* put compact block at the end */
     lastBlock->next = compact;
     compact->start = lastBlock->start + lastBlock->size;
