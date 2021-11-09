@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "block.h"
 
 #define MAX_LINE 80
+#define FREE "P0"
 
-void *memory;
 int max;
+Block* memory = NULL;
 
 int readline(char input[MAX_LINE]){
     char line[MAX_LINE];
@@ -31,6 +33,134 @@ int readline(char input[MAX_LINE]){
     return 0;
 }
 
+void first_fit(char* process, unsigned int size){
+    Block* temp = memory;
+    Block* newBlock = NULL;
+    Block* prev = NULL;
+
+    while(temp != NULL){
+        if (strcmp(temp->process, FREE) == 0 && temp->size > size){
+            newBlock = (Block *)malloc(sizeof(Block));
+            newBlock->process = strdup(process);
+            newBlock->start = temp->start;
+            newBlock->size = size;
+            newBlock->next = temp;
+            temp->start += size + 1;
+            temp->size -= size;
+            if (prev == NULL){
+                memory = newBlock;
+                return;
+            }
+            prev->next = newBlock;
+            return;
+        }
+        else if (strcmp(temp->process, FREE) == 0 && temp->size == size){
+            temp->process = strdup(process);
+            return;
+        }
+        prev = temp;
+        temp = temp->next;
+    }
+    if (temp == NULL){
+        fprintf(stderr, "rq: No space.\n");
+        return;
+    }
+}
+
+void best_fit(char* process, unsigned int size){
+    Block* temp = memory;
+    Block* newBlock = NULL;
+    Block* prev = NULL;
+    Block* bestHolePrev = NULL;
+    Block* bestHole = NULL; 
+
+    while(temp != NULL){
+        if (strcmp(temp->process, FREE) == 0 && temp->size > size){
+            if (bestHole == NULL){
+                bestHole = temp;
+                bestHolePrev = prev;
+            }
+            else{
+                if (temp->size < bestHole->size){
+                    bestHole = temp;
+                    bestHolePrev = prev;
+                }
+            }
+        }
+        else if (strcmp(temp->process, FREE) == 0 && temp->size == size){
+            temp->process = strdup(process);
+            return;
+        }
+        prev = temp;
+        temp = temp->next;
+    }
+    if (bestHole == NULL){
+        fprintf(stderr, "rq: No space.\n");
+        return;
+    }
+    newBlock = (Block *)malloc(sizeof(Block));
+    newBlock->process = strdup(process);
+    newBlock->start = bestHole->start;
+    newBlock->size = size;
+    newBlock->next = bestHole;
+    bestHole->start += size + 1;
+    bestHole->size -= size;
+    if (bestHolePrev == NULL){
+        memory = newBlock;
+        return;
+    }
+    bestHolePrev->next = newBlock;
+    return;
+}
+
+
+void worst_fit(char* process, unsigned int size){
+    Block* temp = memory;
+    Block* newBlock = NULL;
+    Block* prev = NULL;
+    Block* worstHolePrev = NULL;
+    Block* worstHole = NULL; 
+
+    while(temp != NULL){
+        if (strcmp(temp->process, FREE) == 0 && temp->size > size){
+            if (worstHole == NULL){
+                worstHole = temp;
+                worstHolePrev = prev;
+            }
+            else{
+                if (temp->size > worstHole->size){
+                    worstHole = temp;
+                    worstHolePrev = prev;
+                }
+            }
+        }
+        else if (strcmp(temp->process, FREE) == 0 && temp->size == size){
+            temp->process = strdup(process);
+            return;
+        }
+        prev = temp;
+        temp = temp->next;
+    }
+    if (worstHole == NULL){
+        fprintf(stderr, "rq: No space.\n");
+        return;
+    }
+    newBlock = (Block *)malloc(sizeof(Block));
+    newBlock->process = strdup(process);
+    newBlock->start = worstHole->start;
+    newBlock->size = size;
+    newBlock->next = worstHole;
+    worstHole->start += size + 1;
+    worstHole->size -= size;
+    if (worstHolePrev == NULL){
+        memory = newBlock;
+        return;
+    }
+    worstHolePrev->next = newBlock;
+    return;
+}
+
+
 void rq(char *input){
     char *token;
     int i = 0;
@@ -41,7 +171,19 @@ void rq(char *input){
         args[i++] = strdup(token);
         token = strtok(NULL, " ");
     }
-    
+    if (strcmp(args[3], "F") == 0){
+        first_fit(args[1], atoi(args[2]));
+    }
+    else if (strcmp(args[3], "B") == 0){
+        best_fit(args[1], atoi(args[2]));
+    }
+    else if (strcmp(args[3], "W") == 0){
+        worst_fit(args[1], atoi(args[2]));
+    }
+    else{
+        fprintf(stderr, "rq: takes only F, B, or W as 3rd arg\n");
+        return;
+    } 
 }
 
 void rl(char *input){
@@ -58,17 +200,45 @@ void rl(char *input){
 }
 
 void c(){
+    /*
+    Block* temp = memory;
+    Block* prev = NULL;
+    Block* compact = (Block *)malloc(sizeof(Block));
+    compact->process = FREE;
+    compact->start = 0;
+    compact->size = 0;
+    compact->next = NULL;
 
+    while (temp != NULL){
+        if (strcmp(temp->process, FREE) == 0){
+            compact->size += temp->size;
+            if (temp->next != NULL){
+
+            }
+        }
+    }
+    */
 }
 
 void stat(){
-
+    Block* temp = memory;
+    while(temp != NULL){
+        if (strcmp(temp->process, FREE) == 0){
+            printf("Addresses [%d:%d] Unused\n", temp->start, temp->start + temp->size);
+        }
+        else{
+            printf("Addresses [%d:%d] Process %s\n", temp->start, temp->start + temp->size, temp->process);
+        }
+        temp = temp->next;
+    }
+    return;
 }
 
 
 int main(int argc, char* argv[]){
     int should_run = 1;
     char input[MAX_LINE];
+    char inputcpy[MAX_LINE];
     char *token;
 
     if (argc != 2){
@@ -77,7 +247,11 @@ int main(int argc, char* argv[]){
     }
     /* alloc mem */
     max = atoi(argv[1]);
-    memory = malloc(max);
+    memory = (Block *)malloc(sizeof(Block));
+    memory->process = FREE;
+    memory->start = 0;
+    memory->size = max;
+    memory->next = NULL;
 
     while(should_run){
         printf("allocator> ");
@@ -86,7 +260,8 @@ int main(int argc, char* argv[]){
         if (readline(input) == 1){
             continue;
         }
-        token = strtok(input, " ");
+        strcpy(inputcpy, input);
+        token = strtok(inputcpy, " ");
         if (token != NULL){
             if (strcmp(token, "RQ") == 0){
                 rq(input);
