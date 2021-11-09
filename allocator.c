@@ -4,7 +4,7 @@
 #include "block.h"
 
 #define MAX_LINE 80
-#define FREE "P0"
+#define FREE "FREE"
 
 int max;
 Block* memory = NULL;
@@ -45,7 +45,7 @@ void first_fit(char* process, unsigned int size){
             newBlock->start = temp->start;
             newBlock->size = size;
             newBlock->next = temp;
-            temp->start += size + 1;
+            temp->start += size;
             temp->size -= size;
             if (prev == NULL){
                 memory = newBlock;
@@ -103,7 +103,7 @@ void best_fit(char* process, unsigned int size){
     newBlock->start = bestHole->start;
     newBlock->size = size;
     newBlock->next = bestHole;
-    bestHole->start += size + 1;
+    bestHole->start += size;
     bestHole->size -= size;
     if (bestHolePrev == NULL){
         memory = newBlock;
@@ -150,7 +150,7 @@ void worst_fit(char* process, unsigned int size){
     newBlock->start = worstHole->start;
     newBlock->size = size;
     newBlock->next = worstHole;
-    worstHole->start += size + 1;
+    worstHole->start += size;
     worstHole->size -= size;
     if (worstHolePrev == NULL){
         memory = newBlock;
@@ -171,6 +171,12 @@ void rq(char *input){
         args[i++] = strdup(token);
         token = strtok(NULL, " ");
     }
+
+    if (i != 4){
+        fprintf(stderr, "rq: usage RQ [Process] [Size] [Fit]\n");
+        return;
+    }
+
     if (strcmp(args[3], "F") == 0){
         first_fit(args[1], atoi(args[2]));
     }
@@ -190,13 +196,51 @@ void rl(char *input){
     char *token;
     int i = 0;
     char *args[MAX_LINE/2 + 1];
+    Block* temp = memory;
+    Block* prev = NULL;
+    Block* freeHead = NULL; /* head of combined free block */
+    int temp_is_head = 1; /* flag to make sure not to free temp */
     
     token = strtok(input, " ");
     while (token != NULL){
         args[i++] = strdup(token);
         token = strtok(NULL, " ");
     }
+    if (i != 2){
+        fprintf(stderr, "rl: usage RL [Process]\n");
+        return;
+    }
 
+    while(temp != NULL){
+        if (strcmp(temp->process, args[1]) == 0){
+            //found the process to remove
+            temp->process = FREE;
+            freeHead = temp;
+            if (prev != NULL && strcmp(prev->process, FREE) == 0){
+                //combine prev free
+                freeHead = prev;
+                freeHead->size += temp->size;
+                freeHead->next = temp->next;
+                temp_is_head = 0;
+            }
+            if (temp->next != NULL && strcmp(temp->next->process, FREE) == 0){
+                //combine next free
+                freeHead->size += temp->next->size;
+                freeHead->next = temp->next->next;
+                free(temp->next);
+            }
+            if (!temp_is_head){
+                free(temp);
+            }
+            return;
+        }
+        prev = temp;
+        temp = temp->next;
+    }
+    if (temp == NULL){
+        fprintf(stderr, "rl: Process %s not in Memory\n", args[1]);
+        return;
+    }
 }
 
 void c(){
@@ -241,10 +285,10 @@ void stat(){
     Block* temp = memory;
     while(temp != NULL){
         if (strcmp(temp->process, FREE) == 0){
-            printf("Addresses [%d:%d] Unused\n", temp->start, temp->start + temp->size);
+            printf("Addresses [%d:%d] Unused\n", temp->start, temp->start + temp->size - 1);
         }
         else{
-            printf("Addresses [%d:%d] Process %s\n", temp->start, temp->start + temp->size, temp->process);
+            printf("Addresses [%d:%d] Process %s\n", temp->start, temp->start + temp->size - 1, temp->process);
         }
         temp = temp->next;
     }
