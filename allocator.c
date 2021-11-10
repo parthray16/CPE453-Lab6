@@ -190,14 +190,14 @@ void rq(char *input){
 
 void rl(char *input){
     char *token;
-    unsigned int size;
-    char *proc_name;
     int i = 0;
     char *args[MAX_LINE/2 + 1];
     Block* temp = memory;
     Block* prev = NULL;
     Block* freeHead = NULL; /* head of combined free block */
+    Block* nxt = NULL;
     int temp_is_head = 1; /* flag to make sure not to free temp */
+
     
     token = strtok(input, " ");
     while (token != NULL){
@@ -223,13 +223,10 @@ void rl(char *input){
             }
             if (temp->next != NULL && strcmp(temp->next->process, FREE) == 0){
                 //combine next free
-                freeHead->size += temp->next->size;
-                freeHead->next = temp->next->next;
-                proc_name = freeHead->next->process;
-                size = freeHead->next->size;
-                free(temp->next);
-                freeHead->next->process = proc_name;
-                freeHead->next->size = size;
+                nxt = temp->next;
+                freeHead->size += nxt->size;
+                freeHead->next = nxt->next;
+                free(nxt);
             }
             if (!temp_is_head){
                 free(temp);
